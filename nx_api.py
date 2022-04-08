@@ -3,11 +3,12 @@ from functools import singledispatch
 import networkx
 import networkx as nx
 import numpy
+import grblas
 import numpy as np
 import scipy as sp
 import scipy.sparse
 from networkx.algorithms.link_analysis.pagerank_alg import _pagerank_python
-
+from graphblas_algorithms.link_analysis import pagerank_core
 
 # Dispatch to normal pagerank
 @singledispatch
@@ -79,6 +80,31 @@ def _(
         if err < N * tol:
             return dict(zip(nodelist, map(float, x)))
     raise nx.PowerIterationFailedConvergence(max_iter)
+
+
+@pagerank.register
+def _(
+    A: grblas.matrix.Matrix,
+    alpha=0.85,
+    personalization=None,
+    max_iter=100,
+    tol=1e-06,
+    nstart=None,
+    dangling=None,
+    row_degrees=None,
+):
+    dict_vals = pagerank_core(
+        A,
+        alpha=alpha,
+        personalization=personalization,
+        max_iter=max_iter,
+        tol=tol,
+        nstart=nstart,
+        dangling=dangling,
+        row_degrees=row_degrees,
+    ).to_values()
+
+    return dict(zip(dict_vals[0].tolist(), dict_vals[1].tolist()))
 
 
 @singledispatch
